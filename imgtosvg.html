@@ -149,6 +149,16 @@
             color: var(--c-text-main);
         }
 
+        .input-desc {
+            font-size: 0.7rem;
+            color: var(--c-text-sub);
+            margin-top: 0.25rem; /* Increased spacing to prevent overlap */
+            margin-bottom: 1.25rem; /* Space before next group */
+            font-family: var(--font-ui);
+            line-height: 1.3;
+            font-style: italic;
+        }
+
         input[type="text"],
         input[type="number"],
         select, 
@@ -169,7 +179,8 @@
 
         input[type="range"] {
             width: 100%;
-            margin: 0.5rem 0;
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem; /* Reduced bottom margin to keep description close */
             accent-color: var(--c-text-main);
         }
 
@@ -423,25 +434,31 @@
                             <option value="poster">Poster Art (Low Color)</option>
                             <option value="detailed">Photo Detailed (High Res)</option>
                         </select>
-                        
-                        <div style="margin-top: 1rem;"></div>
+                        <div class="input-desc" style="margin-bottom: 1rem;">Auto-fills the parameters below for common styles.</div>
 
                         <label>LTRES (Error Threshold) <span id="val_ltres" style="float:right">1</span></label>
                         <input type="range" id="ltres" min="0.1" max="10" step="0.1" value="1">
+                        <div class="input-desc">Higher = rougher lines (fewer points). Lower = smoother (more points).</div>
 
                         <label>QTRES (Spline Threshold) <span id="val_qtres" style="float:right">1</span></label>
                         <input type="range" id="qtres" min="0.1" max="10" step="0.1" value="1">
+                        <div class="input-desc">Higher = rougher curves. Lower = precise curves.</div>
 
                         <label>COLORS <span id="val_colors" style="float:right">16</span></label>
                         <input type="range" id="numberofcolors" min="2" max="64" step="1" value="16">
+                        <div class="input-desc">Palette size. Lower = simple/logo look. Higher = photo realistic.</div>
                         
                         <label>BLUR RADIUS <span id="val_blur" style="float:right">0</span></label>
                         <input type="range" id="blurradius" min="0" max="5" step="1" value="0">
+                        <div class="input-desc">Pre-blur image to reduce noise and smooth shapes.</div>
                         
-                        <div style="margin-top: 0.5rem">
-                            <input type="checkbox" id="colorsampling" checked>
-                            <label for="colorsampling" style="display:inline;">Enable Color Sampling</label>
-                        </div>
+                        <label for="colorsampling">COLOR SAMPLING</label>
+                        <select id="colorsampling">
+                            <option value="0">0 - Disabled (Precise/Slow)</option>
+                            <option value="1">1 - Random (Noisy/Fast)</option>
+                            <option value="2">2 - Deterministic (Balanced)</option>
+                        </select>
+                        <div class="input-desc">0=Exact scan, 1=Fast random sample, 2=Deterministic grid.</div>
                     </div>
                 </section>
 
@@ -723,7 +740,7 @@
                 ltres: parseFloat(els.inputs.ltres.value),
                 qtres: parseFloat(els.inputs.qtres.value),
                 pathomit: 8,
-                colorsampling: els.inputs.sampling.checked ? 1 : 0, // 1 is random sampling, 0 is disabled (deterministic)
+                colorsampling: parseInt(els.inputs.sampling.value), // Updated to Int (0, 1, 2)
                 numberofcolors: parseInt(els.inputs.colors.value),
                 blurradius: parseInt(els.inputs.blur.value),
                 blurdelta: 20,
@@ -854,11 +871,12 @@
         // --- Presets Logic ---
         function loadPresets() {
             // Define presets
+            // 0 = Disabled, 1 = Random, 2 = Deterministic
             window.presets = {
-                default: { ltres: 1, qtres: 1, colors: 16, blur: 0, sampling: true },
-                technical: { ltres: 0.5, qtres: 0.5, colors: 2, blur: 0, sampling: false },
-                poster: { ltres: 1, qtres: 1, colors: 8, blur: 1, sampling: false },
-                detailed: { ltres: 0.1, qtres: 0.1, colors: 64, blur: 0, sampling: true }
+                default: { ltres: 1, qtres: 1, colors: 16, blur: 0, sampling: 2 },
+                technical: { ltres: 0.5, qtres: 0.5, colors: 2, blur: 0, sampling: 0 },
+                poster: { ltres: 1, qtres: 1, colors: 8, blur: 1, sampling: 2 },
+                detailed: { ltres: 0.1, qtres: 0.1, colors: 64, blur: 0, sampling: 0 }
             };
         }
 
@@ -871,11 +889,12 @@
             els.inputs.qtres.value = data.qtres;
             els.inputs.colors.value = data.colors;
             els.inputs.blur.value = data.blur;
-            els.inputs.sampling.checked = data.sampling;
+            els.inputs.sampling.value = data.sampling;
 
             // Trigger events to update labels
-            ['ltres', 'qtres', 'numberofcolors', 'blurradius'].forEach(id => {
+            ['ltres', 'qtres', 'numberofcolors', 'blurradius', 'colorsampling'].forEach(id => {
                 document.getElementById(id).dispatchEvent(new Event('input'));
+                document.getElementById(id).dispatchEvent(new Event('change'));
             });
             
             log('PROC', `Loaded preset: ${key.toUpperCase()}`);
