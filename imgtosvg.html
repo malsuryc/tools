@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>IMGTOSVG - Client-Side Image to SVG Converter</title>
+    <meta name="description" content="A professional, single-file engineering tool to convert raster images (PNG/JPG) to vector graphics (SVG) entirely in your browser. No server uploads.">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="IMGTOSVG">
+    <meta property="og:description" content="Convert PNG/JPG to SVG instantly in your browser. Single-file, privacy-first engineering tool.">
+    <meta property="og:type" content="website">
+    <!-- social image -->
+    <!-- <meta property="og:image" content=""> -->
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛠️</text></svg>">
+
+    <script src="https://unpkg.com/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Core Aesthetic & Variables */
+        :root {
+            /* Palette */
+            --c-bg-outer: #f8fafc;
+            --c-bg-card: #ffffff;
+            --c-border: #cbd5e1;
+            --c-border-active: #0f172a;
+            
+            /* Text */
+            --c-text-main: #0f172a;
+            --c-text-sub: #64748b;
+            --c-text-inverse: #ffffff;
+            
+            /* Semantic */
+            --c-error: #ef4444;
+            --c-success: #10b981;
+            
+            /* Typography */
+            --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+            
+            /* Spacing */
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+        }
+
+        /* Global Reset & Blueprint Style */
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--c-bg-outer);
+            color: var(--c-text-main);
+            line-height: 1.5;
+            margin: 0;
+            padding: 2rem 1rem;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal scroll while allowing vertical scroll for accessibility */
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* Mandatory: 0px Border Radius Everywhere */
+        button, input, textarea, select, div {
+            border-radius: 0 !important;
+        }
+
+        /* Layout Structure */
+        .app-container {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--c-bg-card);
+            border: 1px solid var(--c-border);
+            padding: var(--space-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+            height: 100%;
+            max-height: 900px;
+            position: relative;
+        }
+
+        .tool-header {
+            border-bottom: 1px solid var(--c-border);
+            padding-bottom: var(--space-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        .version-tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--c-text-sub);
+            text-transform: uppercase;
+        }
+
+        /* --- Main Grid Layout --- */
+        .main-deck {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: var(--space-lg);
+            flex: 1;
+            min-height: 0; /* Crucial for scrolling inside grid items */
+            overflow: hidden; /* Prevent blowout */
+        }
+
+        @media (max-width: 800px) {
+            .main-deck {
+                grid-template-columns: 1fr;
+                overflow-y: auto;
+            }
+            .viewport {
+                min-height: 300px;
+            }
+        }
+
+        /* Component Design */
+        
+        /* Section Titles */
+        h2 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--c-text-sub);
+            margin: 0 0 var(--space-sm) 0;
+            font-weight: 600;
+        }
+
+        /* Inputs & Controls */
+        label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+            color: var(--c-text-main);
+        }
+
+        .input-desc {
+            font-size: 0.7rem;
+            color: var(--c-text-sub);
+            margin-top: 0.25rem; /* Increased spacing to prevent overlap */
+            margin-bottom: 1.25rem; /* Space before next group */
+            font-family: var(--font-ui);
+            line-height: 1.3;
+            font-style: italic;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select, 
+        textarea {
+            font-family: var(--font-mono);
+            border: 1px solid var(--c-border);
+            padding: 0.5rem;
+            width: 100%;
+            background: var(--c-bg-card);
+            color: var(--c-text-main);
+            font-size: 0.875rem;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid var(--c-border-active);
+            border-color: transparent;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem; /* Reduced bottom margin to keep description close */
+            accent-color: var(--c-text-main);
+        }
+
+        /* Buttons (Actuators) */
+        .btn {
+            cursor: pointer;
+            background: var(--c-bg-card);
+            border: 1px solid var(--c-border-active);
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            transition: all 0.1s;
+            font-family: var(--font-ui);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            user-select: none;
+        }
+
+        .btn:hover {
+            background: var(--c-text-main);
+            color: var(--c-text-inverse);
+        }
+
+        .btn:active {
+            transform: translate(1px, 1px);
+        }
+
+        .btn-primary {
+            background: var(--c-text-main);
+            color: var(--c-text-inverse);
+        }
+
+        .btn-primary:hover {
+            background: #334155;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: var(--space-md);
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        /* --- Left Column: Controls --- */
+        .control-deck {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            min-height: 0;
+        }
+
+        .control-group {
+            border: 1px solid var(--c-border);
+            padding: var(--space-md);
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--c-border);
+            padding: var(--space-lg);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            margin-bottom: var(--space-md);
+            background: #f1f5f9;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--c-border-active);
+            background: #e2e8f0;
+        }
+
+        .drop-zone p {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--c-text-sub);
+            margin: 0;
+        }
+
+        /* --- Right Column: Visualization --- */
+        .viz-deck {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+            height: 100%;
+            min-height: 0;
+            min-width: 0; /* Prevents flex items from expanding beyond container */
+        }
+
+        .viewport-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--c-border);
+            padding-bottom: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .viewport {
+            flex: 1;
+            background-color: #f1f5f9;
+            /* Grid pattern for engineering look */
+            background-image: linear-gradient(#e2e8f0 1px, transparent 1px),
+            linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 1px solid var(--c-border);
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .viewport:active {
+            cursor: grabbing;
+        }
+
+        /* The canvas/svg container inside viewport */
+        .canvas-container {
+            transform-origin: 0 0;
+            /* No transition during drag, we handle this in JS if needed, but smooth scale is nice */
+            transition: transform 0.1s ease-out; 
+            box-shadow: 0 0 0 1px var(--c-border);
+            background: white;
+            position: absolute; /* Changed to absolute to allow free movement */
+            top: 0;
+            left: 0;
+            /* PERFORMANCE OPTIMIZATIONS */
+            will-change: transform;
+            backface-visibility: hidden;
+            transform: translateZ(0); /* Force GPU Layer */
+        }
+        
+        .canvas-container svg, .canvas-container img {
+            display: block;
+            /* Remove max-width/height to let the container size naturally to the image, 
+               then we scale/translate the container */
+            width: auto;
+            height: auto;
+        }
+
+        .canvas-container svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Terminal Console --- */
+        .terminal {
+            height: 150px;
+            background: #1e293b; /* Darker slate for terminal */
+            color: #e2e8f0;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: var(--space-sm);
+            overflow-y: auto;
+            border: 1px solid var(--c-border-active);
+            display: flex;
+            flex-direction: column-reverse; /* New logs at bottom */
+            flex-shrink: 0;
+        }
+
+        .log-entry {
+            margin-bottom: 2px;
+        }
+        .log-time { color: #94a3b8; margin-right: 0.5rem; }
+        .log-type-INIT { color: #60a5fa; }
+        .log-type-PROC { color: #fbbf24; }
+        .log-type-DONE { color: #4ade80; }
+        .log-type-ERR  { color: #f87171; }
+
+        /* --- Output Area --- */
+        .output-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: var(--space-sm);
+            align-items: start;
+        }
+
+        .hidden { display: none; }
+
+        /* --- Footer --- */
+        .tool-footer {
+            margin-top: var(--space-md);
+            padding-top: var(--space-sm);
+            border-top: 1px solid var(--c-border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--c-text-sub);
+            font-family: var(--font-mono);
+        }
+        .tool-footer a {
+            color: var(--c-text-main);
+            text-decoration: none;
+            border-bottom: 1px solid var(--c-border);
+        }
+        .tool-footer a:hover {
+            background: var(--c-text-main);
+            color: var(--c-text-inverse);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="tool-header">
+            <div>
+                <h1>IMGTOSVG</h1>
+                <div class="version-tag">BLD_v1.0.0 // CLIENT_SIDE_ONLY</div>
+            </div>
+            <button class="btn btn-small" id="resetBtn">System Reset</button>
+        </header>
+
+        <!-- MAIN DECK -->
+        <div class="main-deck">
+            
+            <!-- LEFT: CONTROLS -->
+            <aside class="control-deck">
+                
+                <!-- Input Module -->
+                <section>
+                    <h2>01. Input Source</h2>
+                    <div class="drop-zone" id="dropZone">
+                        <p>DRAG PNG/JPG HERE<br>OR PASTE (CTRL+V)</p>
+                        <input type="file" id="fileInput" accept="image/*" style="display:none">
+                        <button class="btn btn-small" style="margin-top: 0.5rem;" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+                    </div>
+                </section>
+
+                <!-- Algorithm Settings -->
+                <section>
+                    <h2>02. Algorithm Core</h2>
+                    <div class="control-group">
+                        <label for="presetSelect">PRESET CONFIGURATION</label>
+                        <select id="presetSelect">
+                            <option value="default">Default (Balanced)</option>
+                            <option value="technical">Technical Drawing (B&W)</option>
+                            <option value="poster">Poster Art (Low Color)</option>
+                            <option value="detailed">Photo Detailed (High Res)</option>
+                        </select>
+                        <div class="input-desc" style="margin-bottom: 1rem;">Auto-fills the parameters below for common styles.</div>
+
+                        <label>LTRES (Error Threshold) <span id="val_ltres" style="float:right">1</span></label>
+                        <input type="range" id="ltres" min="0.1" max="10" step="0.1" value="1">
+                        <div class="input-desc">Higher = rougher lines (fewer points). Lower = smoother (more points).</div>
+
+                        <label>QTRES (Spline Threshold) <span id="val_qtres" style="float:right">1</span></label>
+                        <input type="range" id="qtres" min="0.1" max="10" step="0.1" value="1">
+                        <div class="input-desc">Higher = rougher curves. Lower = precise curves.</div>
+
+                        <label>COLORS <span id="val_colors" style="float:right">16</span></label>
+                        <input type="range" id="numberofcolors" min="2" max="64" step="1" value="16">
+                        <div class="input-desc">Palette size. Lower = simple/logo look. Higher = photo realistic.</div>
+                        
+                        <label>BLUR RADIUS <span id="val_blur" style="float:right">0</span></label>
+                        <input type="range" id="blurradius" min="0" max="5" step="1" value="0">
+                        <div class="input-desc">Pre-blur image to reduce noise and smooth shapes.</div>
+                        
+                        <label for="colorsampling">COLOR SAMPLING</label>
+                        <select id="colorsampling">
+                            <option value="0">0 - Disabled (Precise/Slow)</option>
+                            <option value="1">1 - Random (Noisy/Fast)</option>
+                            <option value="2">2 - Deterministic (Balanced)</option>
+                        </select>
+                        <div class="input-desc">0=Exact scan, 1=Fast random sample, 2=Deterministic grid.</div>
+                    </div>
+                </section>
+
+                <!-- Execution -->
+                <section>
+                    <button id="execBtn" class="btn btn-primary" style="width: 100%; padding: 1rem;">
+                        [ EXECUTE TRACE ]
+                    </button>
+                </section>
+
+                <!-- Output -->
+                <section id="outputSection" class="hidden">
+                    <h2>03. Output Data</h2>
+                    <div class="control-group">
+                        <div class="btn-group" style="flex-direction: column;">
+                            <button class="btn" id="downloadBtn">Download .SVG</button>
+                            <button class="btn" id="copyBtn">Copy SVG Code</button>
+                        </div>
+                        <textarea id="svgOutput" rows="4" readonly style="font-size: 0.7rem; color: var(--c-text-sub);"></textarea>
+                    </div>
+                </section>
+
+            </aside>
+
+            <!-- RIGHT: VISUALIZATION -->
+            <main class="viz-deck">
+                <div class="viewport-controls">
+                    <div class="btn-group" style="margin:0">
+                        <button class="btn btn-small" id="zoomOutBtn">[-]</button>
+                        <button class="btn btn-small" id="resetViewBtn">RESET VIEW</button>
+                        <button class="btn btn-small" id="zoomInBtn">[+]</button>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.75rem;">
+                        <span id="zoomLevel">100%</span>
+                    </div>
+                </div>
+
+                <div class="viewport" id="viewport">
+                    <div class="canvas-container" id="canvasContainer">
+                        <img id="sourceImage" src="" alt="Source" style="display:none;">
+                        <!-- SVG will be injected here -->
+                    </div>
+                    <div id="placeholderText" style="color: var(--c-text-sub); font-family: var(--font-mono);">
+                        [NO IMAGE LOADED]
+                    </div>
+                </div>
+
+                <!-- TERMINAL -->
+                <div class="terminal" id="terminal">
+                    <!-- Logs go here -->
+                </div>
+            </main>
+        </div>
+
+        <footer class="tool-footer">
+            <div>
+                <a href="https://github.com/malsuryc/tools" target="_blank">VIEW SOURCE CODE</a>
+            </div>
+            <div>
+                NO TRACKING. RUNS 100% LOCALLY.
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        /* --- CORE LOGIC --- */
+
+        // Global error handler to pipe errors to visual terminal
+        window.onerror = function(msg, url, line, col, error) {
+            const errorMsg = `SYS_ERR: ${msg} [Line: ${line}]`;
+            console.error("Global Catch:", error);
+            // We need to wait for DOM or check if log exists
+            if (typeof log === 'function') {
+                log('ERR', errorMsg);
+            } else {
+                // Fallback if log function isn't ready
+                const terminal = document.getElementById('terminal');
+                if (terminal) {
+                    const div = document.createElement('div');
+                    div.style.color = 'red';
+                    div.innerText = `[CRITICAL] ${errorMsg}`;
+                    terminal.prepend(div);
+                }
+            }
+            return false; 
+        };
+        
+        // State
+        const state = {
+            scale: 1,
+            panning: false,
+            pointX: 0,
+            pointY: 0,
+            startX: 0,
+            startY: 0,
+            imgLoaded: false,
+            currentSvgString: ''
+        };
+
+        // DOM Elements
+        const els = {
+            dropZone: document.getElementById('dropZone'),
+            fileInput: document.getElementById('fileInput'),
+            terminal: document.getElementById('terminal'),
+            viewport: document.getElementById('viewport'),
+            container: document.getElementById('canvasContainer'),
+            sourceImg: document.getElementById('sourceImage'),
+            placeholder: document.getElementById('placeholderText'),
+            zoomLabel: document.getElementById('zoomLevel'),
+            execBtn: document.getElementById('execBtn'),
+            svgOutput: document.getElementById('svgOutput'),
+            outputSection: document.getElementById('outputSection'),
+            inputs: {
+                ltres: document.getElementById('ltres'),
+                qtres: document.getElementById('qtres'),
+                colors: document.getElementById('numberofcolors'),
+                blur: document.getElementById('blurradius'),
+                sampling: document.getElementById('colorsampling'),
+                preset: document.getElementById('presetSelect')
+            }
+        };
+
+        // Initialize
+        function init() {
+            log('INIT', 'System initialized. Waiting for input.');
+            loadPresets();
+            setupEventListeners();
+            setupViewportInteraction();
+        }
+
+        // --- Terminal Logic ---
+        function log(type, msg) {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+            div.innerHTML = `<span class="log-time">[${time}]</span><span class="log-type-${type}">[${type}]</span> ${msg}`;
+            els.terminal.prepend(div);
+        }
+
+        // --- Input Handling ---
+        function setupEventListeners() {
+            // Drag & Drop
+            els.dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                els.dropZone.classList.add('drag-over');
+            });
+
+            els.dropZone.addEventListener('dragleave', () => {
+                els.dropZone.classList.remove('drag-over');
+            });
+
+            els.dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                els.dropZone.classList.remove('drag-over');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            // File Input
+            els.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+            // Paste
+            document.addEventListener('paste', (e) => {
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        handleFiles([blob]);
+                        break;
+                    }
+                }
+            });
+
+            // Inputs Update Labels
+            const inputToLabelMap = {
+                ltres: 'val_ltres',
+                qtres: 'val_qtres',
+                numberofcolors: 'val_colors',
+                blurradius: 'val_blur'
+            };
+            ['ltres', 'qtres', 'numberofcolors', 'blurradius'].forEach(id => {
+                const el = document.getElementById(id);
+                const labelId = inputToLabelMap[id] || `val_${id}`;
+                const label = document.getElementById(labelId);
+                if (!label) {
+                    return;
+                }
+                el.addEventListener('input', () => {
+                    label.textContent = el.value;
+                });
+            });
+
+            // Preset Change
+            els.inputs.preset.addEventListener('change', applyPreset);
+
+            // Execute
+            els.execBtn.addEventListener('click', runTrace);
+
+            // Output Actions
+            document.getElementById('copyBtn').addEventListener('click', function() {
+                navigator.clipboard.writeText(state.currentSvgString);
+                log('DONE', 'SVG code copied to clipboard.');
+                
+                // Visual Feedback on Button
+                const originalText = this.innerText;
+                this.innerText = 'COPIED!';
+                this.classList.add('btn-primary');
+                setTimeout(() => {
+                    this.innerText = originalText;
+                    this.classList.remove('btn-primary');
+                }, 1500);
+            });
+
+            document.getElementById('downloadBtn').addEventListener('click', () => {
+                const blob = new Blob([state.currentSvgString], {type: "image/svg+xml"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "vectorized_output.svg";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                log('DONE', 'Download started.');
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                location.reload();
+            });
+
+            // View Control Buttons
+            document.getElementById('zoomInBtn').addEventListener('click', () => {
+                state.scale *= 1.2;
+                requestUpdate();
+            });
+
+            document.getElementById('zoomOutBtn').addEventListener('click', () => {
+                state.scale *= 0.8;
+                requestUpdate();
+            });
+
+            document.getElementById('resetViewBtn').addEventListener('click', () => {
+                if(state.imgLoaded) resetViewport();
+            });
+        }
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            
+            if (!file.type.match('image.*')) {
+                log('ERR', 'Invalid file type. Please upload PNG/JPG.');
+                return;
+            }
+
+            log('PROC', `Loading image: ${file.name} (${Math.round(file.size/1024)}KB)`);
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                els.sourceImg.src = e.target.result;
+                els.sourceImg.onload = () => {
+                    state.imgLoaded = true;
+                    els.sourceImg.style.display = 'block';
+                    els.placeholder.style.display = 'none';
+                    resetViewport();
+                    
+                    // Cleanup previous SVG
+                    const prevSvg = els.container.querySelector('svg');
+                    if (prevSvg) prevSvg.remove();
+                    
+                    log('DONE', `Image loaded. Dimensions: ${els.sourceImg.naturalWidth}x${els.sourceImg.naturalHeight}px`);
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Core Tracing ---
+        function runTrace() {
+            if (!state.imgLoaded) {
+                log('ERR', 'No image loaded. Drop an image first.');
+                return;
+            }
+
+            log('PROC', 'Starting Vectorization process...');
+            els.execBtn.textContent = 'PROCESSING...';
+            els.execBtn.disabled = true;
+
+            // Get Parameters
+            const options = {
+                ltres: parseFloat(els.inputs.ltres.value),
+                qtres: parseFloat(els.inputs.qtres.value),
+                pathomit: 8,
+                colorsampling: parseInt(els.inputs.sampling.value), // Updated to Int (0, 1, 2)
+                numberofcolors: parseInt(els.inputs.colors.value),
+                blurradius: parseInt(els.inputs.blur.value),
+                blurdelta: 20,
+                strokewidth: 0,
+                viewbox: true,
+                desc: false,
+            };
+
+            // Small timeout to allow UI to update
+            setTimeout(() => {
+                try {
+                    // Using ImageTracer from CDN
+                    ImageTracer.imageToSVG(
+                        els.sourceImg.src,
+                        (svgstr) => {
+                            // On Success
+                            state.currentSvgString = svgstr;
+                            
+                            // Render to Viewport
+                            const prevSvg = els.container.querySelector('svg');
+                            if (prevSvg) prevSvg.remove();
+                            
+                            // Insert SVG securely
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(svgstr, "image/svg+xml");
+                            els.container.appendChild(doc.documentElement);
+
+                            // Update Output
+                            els.svgOutput.value = svgstr;
+                            els.outputSection.classList.remove('hidden');
+                            
+                            els.execBtn.textContent = '[ EXECUTE TRACE ]';
+                            els.execBtn.disabled = false;
+                            
+                            log('DONE', `Vectorization complete. Generated ${Math.round(svgstr.length/1024)}KB of SVG data.`);
+                        },
+                        options
+                    );
+                } catch (e) {
+                    log('ERR', 'Tracing Engine Failed: ' + e.message);
+                    els.execBtn.textContent = '[ EXECUTE TRACE ]';
+                    els.execBtn.disabled = false;
+                }
+            }, 100);
+        }
+
+        // --- Viewport / Visualization Logic ---
+        
+        let renderLoop = null; // Optimization variable
+
+        function setupViewportInteraction() {
+            // Zoom via Wheel
+            els.viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY * -0.01;
+                const newScale = Math.min(Math.max(0.05, state.scale + delta), 20);
+                
+                state.scale = newScale;
+                requestUpdate();
+            }, { passive: false });
+
+            // Pan via Mouse Drag
+            els.viewport.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                state.panning = true;
+                // Capture the starting mouse position relative to the translation
+                state.startX = e.clientX - state.pointX;
+                state.startY = e.clientY - state.pointY;
+                els.viewport.style.cursor = 'grabbing';
+                // Optimize rendering during drag
+                els.container.style.transition = 'none'; // Disable transition during drag for instant response
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!state.panning) return;
+                e.preventDefault();
+                state.pointX = e.clientX - state.startX;
+                state.pointY = e.clientY - state.startY;
+                requestUpdate();
+            });
+
+            window.addEventListener('mouseup', () => {
+                if(state.panning) {
+                    state.panning = false;
+                    els.viewport.style.cursor = 'grab';
+                    els.container.style.transition = 'transform 0.1s ease-out'; // Re-enable smoothing
+                }
+            });
+        }
+
+        function requestUpdate() {
+            if (!renderLoop) {
+                renderLoop = requestAnimationFrame(() => {
+                    updateTransform();
+                    renderLoop = null;
+                });
+            }
+        }
+
+        function updateTransform() {
+            els.container.style.transform = `translate(${state.pointX}px, ${state.pointY}px) scale(${state.scale})`;
+            els.zoomLabel.textContent = `${Math.round(state.scale * 100)}%`;
+        }
+
+        function resetViewport() {
+            if (!state.imgLoaded) return;
+            
+            const vpW = els.viewport.clientWidth;
+            const vpH = els.viewport.clientHeight;
+            const imgW = els.sourceImg.naturalWidth;
+            const imgH = els.sourceImg.naturalHeight;
+
+            // Padding factor
+            const padding = 0.9;
+
+            // Calculate Scale to 'Contain'
+            const scaleX = vpW / imgW;
+            const scaleY = vpH / imgH;
+            state.scale = Math.min(scaleX, scaleY) * padding;
+
+            // Calculate Center Offset
+            state.pointX = (vpW - (imgW * state.scale)) / 2;
+            state.pointY = (vpH - (imgH * state.scale)) / 2;
+
+            requestUpdate();
+        }
+
+        // --- Presets Logic ---
+        function loadPresets() {
+            // Define presets
+            // 0 = Disabled, 1 = Random, 2 = Deterministic
+            window.presets = {
+                default: { ltres: 1, qtres: 1, colors: 16, blur: 0, sampling: 2 },
+                technical: { ltres: 0.5, qtres: 0.5, colors: 2, blur: 0, sampling: 0 },
+                poster: { ltres: 1, qtres: 1, colors: 8, blur: 1, sampling: 2 },
+                detailed: { ltres: 0.1, qtres: 0.1, colors: 64, blur: 0, sampling: 0 }
+            };
+        }
+
+        function applyPreset() {
+            const key = els.inputs.preset.value;
+            const data = window.presets[key];
+            if (!data) return;
+
+            els.inputs.ltres.value = data.ltres;
+            els.inputs.qtres.value = data.qtres;
+            els.inputs.colors.value = data.colors;
+            els.inputs.blur.value = data.blur;
+            els.inputs.sampling.value = data.sampling;
+
+            // Trigger events to update labels
+            ['ltres', 'qtres', 'numberofcolors', 'blurradius', 'colorsampling'].forEach(id => {
+                document.getElementById(id).dispatchEvent(new Event('input'));
+                document.getElementById(id).dispatchEvent(new Event('change'));
+            });
+            
+            log('PROC', `Loaded preset: ${key.toUpperCase()}`);
+        }
+
+        // Run Init
+        init();
+
+    </script>
+</body>
+</html>
