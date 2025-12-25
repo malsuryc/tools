@@ -633,9 +633,19 @@
             });
 
             // Inputs Update Labels
+            const inputToLabelMap = {
+                ltres: 'val_ltres',
+                qtres: 'val_qtres',
+                numberofcolors: 'val_colors',
+                blurradius: 'val_blur'
+            };
             ['ltres', 'qtres', 'numberofcolors', 'blurradius'].forEach(id => {
                 const el = document.getElementById(id);
-                const label = document.getElementById(`val_${id.replace('radius', '').replace('numberof', '')}`);
+                const labelId = inputToLabelMap[id] || `val_${id}`;
+                const label = document.getElementById(labelId);
+                if (!label) {
+                    return;
+                }
                 el.addEventListener('input', () => {
                     label.textContent = el.value;
                 });
