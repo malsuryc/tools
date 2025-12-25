@@ -61,7 +61,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow: hidden; /* Prevent body scroll if content overflows */
+            overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal scroll while allowing vertical scroll for accessibility */
         }
 
         *, *::before, *::after {
@@ -125,6 +126,10 @@
         @media (max-width: 800px) {
             .main-deck {
                 grid-template-columns: 1fr;
+                overflow-y: auto;
+            }
+            .viewport {
+                min-height: 300px;
             }
         }
 
