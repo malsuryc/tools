@@ -8,7 +8,7 @@
     <meta name="description" content="A professional, single-file engineering tool to convert raster images (PNG/JPG) to vector graphics (SVG) entirely in your browser. No server uploads.">
     
     <!-- Tool Discovery Metadata -->
-    <meta name="tool:tags" content="v1.0.0, GRAPHICS">
+    <meta name="tool:tags" content="v1.0.1, GRAPHICS">
     <meta name="tool:is_new" content="true">
 
     <!-- Open Graph -->
@@ -411,7 +411,7 @@
         <header class="tool-header">
             <div>
                 <h1>IMGTOSVG</h1>
-                <div class="version-tag">BLD_v1.0.0 // CLIENT_SIDE_ONLY</div>
+                <div class="version-tag">BLD_v1.0.1 // CLIENT_SIDE_ONLY</div>
             </div>
             <button class="btn btn-small" id="resetBtn">System Reset</button>
         </header>
@@ -606,6 +606,7 @@
             const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
             div.innerHTML = `<span class="log-time">[${time}]</span><span class="log-type-${type}">[${type}]</span> ${msg}`;
             els.terminal.prepend(div);
+            return div;
         }
 
         // --- Input Handling ---
@@ -744,6 +745,24 @@
         }
 
         // --- Core Tracing ---
+
+        function copyToTerminal(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const t = document.getElementById('terminal');
+                const d = document.createElement('div');
+                d.className = 'log-entry';
+                d.innerHTML = '<span style="color:#4ade80">>> Command copied to clipboard</span>';
+                t.prepend(d);
+            }).catch(err => {
+                console.error(err);
+                const t = document.getElementById('terminal');
+                const d = document.createElement('div');
+                d.className = 'log-entry';
+                d.innerHTML = '<span style="color:#f87171">>> Failed to copy to clipboard</span>';
+                t.prepend(d);
+            });
+        }
+
         function runTrace() {
             if (!state.imgLoaded) {
                 log('ERR', 'No image loaded. Drop an image first.');
@@ -767,6 +786,16 @@
                 viewbox: true,
                 desc: false,
             };
+            
+            const cmd = `ImageTracer.imageToSVG( source, callback, ${JSON.stringify(options)} )`;
+            const logEl = log('PROC', `Config ready. <a href="#" class="cmd-copy-link" style="color:inherit;text-decoration:underline;">[COPY COMMAND]</a>`);
+            const link = logEl.querySelector('.cmd-copy-link');
+            if (link) {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    copyToTerminal(cmd);
+                });
+            }
 
             // Small timeout to allow UI to update
             setTimeout(() => {
