@@ -606,6 +606,7 @@
             const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
             div.innerHTML = `<span class="log-time">[${time}]</span><span class="log-type-${type}">[${type}]</span> ${msg}`;
             els.terminal.prepend(div);
+            return div;
         }
 
         // --- Input Handling ---
@@ -745,14 +746,22 @@
 
         // --- Core Tracing ---
 
-        window.copyCmd = function(b64) {
-            navigator.clipboard.writeText(atob(b64));
-            const t = document.getElementById('terminal');
-            const d = document.createElement('div');
-            d.className = 'log-entry';
-            d.innerHTML = '<span style="color:#4ade80">>> Command copied to clipboard</span>';
-            t.prepend(d);
-        };
+        function copyToTerminal(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const t = document.getElementById('terminal');
+                const d = document.createElement('div');
+                d.className = 'log-entry';
+                d.innerHTML = '<span style="color:#4ade80">>> Command copied to clipboard</span>';
+                t.prepend(d);
+            }).catch(err => {
+                console.error(err);
+                const t = document.getElementById('terminal');
+                const d = document.createElement('div');
+                d.className = 'log-entry';
+                d.innerHTML = '<span style="color:#f87171">>> Failed to copy to clipboard</span>';
+                t.prepend(d);
+            });
+        }
 
         function runTrace() {
             if (!state.imgLoaded) {
@@ -777,8 +786,16 @@
                 viewbox: true,
                 desc: false,
             };
+            
             const cmd = `ImageTracer.imageToSVG( source, callback, ${JSON.stringify(options)} )`;
-            log('PROC', `Config ready. <a href="#" onclick="window.copyCmd('${btoa(cmd)}');return false;" style="color:inherit;text-decoration:underline;">[COPY COMMAND]</a>`);
+            const logEl = log('PROC', `Config ready. <a href="#" class="cmd-copy-link" style="color:inherit;text-decoration:underline;">[COPY COMMAND]</a>`);
+            const link = logEl.querySelector('.cmd-copy-link');
+            if (link) {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    copyToTerminal(cmd);
+                });
+            }
 
             // Small timeout to allow UI to update
             setTimeout(() => {
