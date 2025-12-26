@@ -69,15 +69,24 @@ def main():
     # Sort tools (optional, e.g., by title or newness)
     tools.sort(key=lambda x: x["title"])
 
-    # Generate JS code
-    tools_json = json.dumps(tools, indent=4)
-    new_content_block = (
-        f"{MARKER_START}\n        const tools = {tools_json};\n        {MARKER_END}"
-    )
-
     # Update index.html
     with open(INDEX_FILE, "r", encoding="utf-8") as f:
         index_content = f.read()
+
+    # Detect indentation from the line containing MARKER_START
+    indentation = "        "  # Default fallback
+    for line in index_content.splitlines():
+        if MARKER_START in line:
+            # Get the leading whitespace
+            indentation = line[: line.find(MARKER_START)]
+            break
+
+    # Generate JS code
+    tools_json = json.dumps(tools, indent=4)
+    # Indent the JSON content to match the file structure
+    tools_json_indented = tools_json.replace("\n", "\n" + indentation)
+
+    new_content_block = f"{MARKER_START}\n{indentation}const tools = {tools_json_indented};\n{indentation}{MARKER_END}"
 
     # Regex to replace the block
     pattern = re.compile(
