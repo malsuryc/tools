@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOOLS</title>
+    <meta name="description" content="A collection of lightweight, standalone HTML/JS utilities built to streamline my development workflow.">
+    
+    <!-- Favicon: A folder/hub icon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- DESIGN.md: Core Aesthetic --- */
+        :root {
+            /* Palette */
+            --c-bg-outer: #f8fafc;
+            --c-bg-card: #ffffff;
+            --c-border: #cbd5e1;
+            --c-border-active: #0f172a;
+            
+            /* Text */
+            --c-text-main: #0f172a;
+            --c-text-sub: #64748b;
+            --c-text-inverse: #ffffff;
+            
+            /* Typography */
+            --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+            
+            /* Spacing */
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+        }
+
+        /* --- Global Reset --- */
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--c-bg-outer);
+            color: var(--c-text-main);
+            line-height: 1.5;
+            margin: 0;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        button, input, div, a {
+            border-radius: 0 !important; /* Strict Blueprint Style */
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* --- Layout --- */
+        .hub-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+
+        /* --- Header --- */
+        .hub-header {
+            background: var(--c-bg-card);
+            border: 1px solid var(--c-border);
+            padding: var(--space-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .subtitle {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--c-text-sub);
+        }
+
+        /* --- Search Bar --- */
+        .search-wrapper {
+            position: relative;
+            margin-top: var(--space-sm);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            border: 1px solid var(--c-border);
+            background: #f1f5f9;
+            color: var(--c-text-main);
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: 2px solid var(--c-border-active);
+            border-color: transparent;
+            background: #ffffff;
+        }
+
+        /* --- Tool Grid --- */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: var(--space-md);
+        }
+
+        /* --- Tool Card --- */
+        .tool-card {
+            background: var(--c-bg-card);
+            border: 1px solid var(--c-border);
+            padding: var(--space-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+            transition: transform 0.1s, border-color 0.1s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tool-card:hover {
+            border-color: var(--c-border-active);
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px rgba(15, 23, 42, 0.1); /* Hard shadow hint */
+        }
+
+        .tool-title {
+            font-weight: 800;
+            font-size: 1.125rem;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .tool-desc {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--c-text-sub);
+            flex-grow: 1;
+            line-height: 1.4;
+        }
+
+        .tool-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--c-border);
+            padding-top: var(--space-sm);
+            margin-top: var(--space-sm);
+        }
+
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            background: #f1f5f9;
+            color: var(--c-text-main);
+            border: 1px solid var(--c-border);
+            text-transform: uppercase;
+        }
+
+        .tag.new { background: #dcfce7; border-color: #86efac; color: #166534; }
+        .tag.beta { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+
+        .launch-btn {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--c-text-main);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .launch-btn::after {
+            content: "→";
+            font-family: var(--font-mono);
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem;
+            font-family: var(--font-mono);
+            color: var(--c-text-sub);
+            border: 1px dashed var(--c-border);
+        }
+
+        /* --- Footer --- */
+        .hub-footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--c-text-sub);
+            width: 100%;
+            max-width: 900px;
+            border-top: 1px solid var(--c-border);
+            padding-top: var(--space-md);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .hub-footer a {
+            border-bottom: 1px solid var(--c-border);
+        }
+        .hub-footer a:hover {
+            color: var(--c-text-main);
+            border-color: var(--c-text-main);
+        }
+
+        @media (max-width: 600px) {
+            .tool-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hub-container">
+        <!-- Header Section -->
+        <header class="hub-header">
+            <div>
+                <h1>
+                    <span>Tools</span>
+                </h1>
+                <div class="subtitle">
+                    Single-file, client-side utilities for rapid development.
+                </div>
+            </div>
+            
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="> Search tools directory..." autofocus>
+            </div>
+        </header>
+
+        <!-- Tool Grid -->
+        <div id="toolGrid" class="tool-grid">
+            <!-- Tools will be injected here via JS -->
+        </div>
+
+        <!-- Footer -->
+        <footer class="hub-footer">
+            <div>
+                <a href="https://github.com/malsuryc/tools" target="_blank">GITHUB REPOSITORY</a>
+            </div>
+            <div>
+                NO TRACKING. 100% CLIENT-SIDE.
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        /* --- CONFIGURATION ---
+           Add new tools to this array. 
+           Path should be relative to this index.html file.
+        */
+        // <!-- AUTO-GENERATED:START -->
+        const tools = [
+    {
+        "id": "imgtosvg",
+        "title": "IMGTOSVG",
+        "desc": "Convert PNG/JPG to SVG instantly in your browser. Single-file, privacy-first engineering tool.",
+        "path": "./imgtosvg.html",
+        "tags": [
+            "v1.0.0",
+            "GRAPHICS"
+        ],
+        "isNew": true
+    }
+];
+        // <!-- AUTO-GENERATED:END -->
+
+        // --- DOM Elements ---
+        const grid = document.getElementById('toolGrid');
+        const searchInput = document.getElementById('searchInput');
+
+        // --- Render Logic ---
+        function renderTools(filter = '') {
+            grid.innerHTML = '';
+            
+            const lowerFilter = filter.toLowerCase();
+            
+            const filteredTools = tools.filter(tool => {
+                return tool.title.toLowerCase().includes(lowerFilter) || 
+                       tool.desc.toLowerCase().includes(lowerFilter) ||
+                       tool.tags.some(t => t.toLowerCase().includes(lowerFilter));
+            });
+
+            if (filteredTools.length === 0) {
+                grid.innerHTML = `<div class="no-results">NO TOOLS FOUND MATCHING QUERY "${filter}"</div>`;
+                return;
+            }
+
+            filteredTools.forEach(tool => {
+                // Create Card
+                const card = document.createElement('a');
+                card.href = tool.path;
+                card.className = 'tool-card';
+                
+                // Tags HTML
+                let tagsHtml = tool.tags.map(t => `<span class="tag">${t}</span>`).join('');
+                if (tool.isNew) tagsHtml += `<span class="tag new">NEW</span>`;
+
+                card.innerHTML = `
+                    <div class="tool-title">
+                        ${tool.title}
+                        <div class="launch-btn">LAUNCH</div>
+                    </div>
+                    <div class="tool-desc">
+                        ${tool.desc}
+                    </div>
+                    <div class="tool-meta">
+                        <div style="display:flex; gap:0.25rem;">${tagsHtml}</div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // --- Event Listeners ---
+        searchInput.addEventListener('input', (e) => {
+            renderTools(e.target.value);
+        });
+
+        // --- Init ---
+        renderTools();
+
+        console.log(`%c TOOLS %c Loaded ${tools.length} utilities.`, 
+            'background:#0f172a; color:#fff; padding: 4px;', 
+            'background:#fff; color:#0f172a; padding: 4px;');
+
+    </script>
+</body>
+</html>
