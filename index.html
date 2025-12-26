@@ -317,7 +317,10 @@
             });
 
             if (filteredTools.length === 0) {
-                grid.innerHTML = `<div class="no-results">NO TOOLS FOUND MATCHING QUERY "${filter}"</div>`;
+                const div = document.createElement('div');
+                div.className = 'no-results';
+                div.textContent = `NO TOOLS FOUND MATCHING QUERY "${filter}"`;
+                grid.appendChild(div);
                 return;
             }
 
