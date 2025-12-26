@@ -215,25 +215,26 @@
 
         /* --- Footer --- */
         .hub-footer {
-            margin-top: 2rem;
-            text-align: center;
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            color: var(--c-text-sub);
-            width: 100%;
-            max-width: 900px;
+            margin-top: var(--space-md);
+            padding-top: var(--space-sm);
             border-top: 1px solid var(--c-border);
-            padding-top: var(--space-md);
             display: flex;
             justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--c-text-sub);
+            font-family: var(--font-mono);
+            width: 100%;
+            max-width: 900px;
         }
 
         .hub-footer a {
+            color: var(--c-text-main);
+            text-decoration: none;
             border-bottom: 1px solid var(--c-border);
         }
         .hub-footer a:hover {
-            color: var(--c-text-main);
-            border-color: var(--c-text-main);
+            background: var(--c-text-main);
+            color: var(--c-text-inverse);
         }
 
         @media (max-width: 600px) {
@@ -270,10 +271,10 @@
         <!-- Footer -->
         <footer class="hub-footer">
             <div>
-                <a href="https://github.com/malsuryc/tools" target="_blank">GITHUB REPOSITORY</a>
+                <a href="https://github.com/malsuryc/tools" target="_blank">VIEW SOURCE CODE</a>
             </div>
             <div>
-                NO TRACKING. 100% CLIENT-SIDE.
+                NO TRACKING. RUNS 100% LOCALLY.
             </div>
         </footer>
     </div>
